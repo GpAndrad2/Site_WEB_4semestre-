@@ -1,21 +1,78 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text, TextInput, Image } from 'react-native';
 import { useFonts, SpaceGrotesk_300Light, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
-import { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native'; 
+import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Texto from './src/componentes/texto';    // Importação do componente Texto
+import { Camera } from 'expo-camera';
+import Texto from './src/componentes/texto';
 import Produto from './src/telas/Produtos/';
 import Sobre from './src/telas/Sobre/';
 import Produtos_Lista from './src/telas/Produtos_Lista/';
-import VideoScreen from './src/telas/video'; // Importação do componente VideoScreen
-
+import VideoScreen from './src/telas/video';
 import mockProduto from './src/mocks/produto/';
 import mockSobre from './src/mocks/sobre/';
 import mockProdutos_Lista from './src/mocks/produtos_lista/';
-
-// Audio
 import { Audio } from 'expo-av';
+
+function CameraScreen() {
+  const [hasPermission, setHasPermission] = useState(null);
+  const [type, setType] = useState(Camera.Constants.Type.back);
+  const [photo, setPhoto] = useState(null);
+  const cameraRef = useRef(null);
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+  }, []);
+
+  if (hasPermission === null) {
+    return <View />;
+  }
+  if (hasPermission === false) {
+    return <Text>Sem acesso à câmera</Text>;
+  }
+
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      const { uri } = await cameraRef.current.takePictureAsync();
+      setPhoto(uri);
+    }
+  };
+
+  const switchCamera = () => {
+    setType((prevType) =>
+      prevType === Camera.Constants.Type.back
+        ? Camera.Constants.Type.front
+        : Camera.Constants.Type.back
+    );
+  };
+
+  return (
+    <View style={styles.cameraContainer}>
+      {/* Exemplo de utilização do TextInput */}
+      <TextInput
+        style={styles.input}
+        value={text}
+        onChangeText={setText}
+        placeholder="Digite algo aqui"
+        keyboardType="default"
+      />
+      <View style={styles.controls}>
+        <TouchableOpacity style={styles.button} onPress={switchCamera}>
+          <Text style={styles.text}>Virar Câmera</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={takePicture}>
+          <Text style={styles.text}>Tirar Foto</Text>
+        </TouchableOpacity>
+      </View>
+      {photo && <Image source={{ uri: photo }} style={styles.preview} />}
+    </View>
+  );
+}
 
 function MenuAudio() {
   const [audioStatus, setAudioStatus] = useState(false);
@@ -56,7 +113,7 @@ function MenuAudio() {
 
 function MenuKit() {
   return (
-    <View>
+    <View style={styles.container}>
       <Produto {...mockProduto} />
     </View>
   );
@@ -97,6 +154,8 @@ function TabsMenu() {
             iconName = focused ? 'heart' : 'heart-outline';
           } else if (route.name === "Vídeo") {
             iconName = focused ? 'videocam' : 'videocam-outline';
+          } else if (route.name === "Câmera") {
+            iconName = focused ? 'camera' : 'camera-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -111,9 +170,48 @@ function TabsMenu() {
       <Tab.Screen name="Produtos" component={ListaProdutos} />
       <Tab.Screen name="Lista de Desejos" component={MenuKit} />
       <Tab.Screen name="Vídeo" component={VideoScreen} />
+      <Tab.Screen name="Câmera" component={CameraScreen} />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  cameraContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginVertical: 10,
+    paddingHorizontal: 8,
+    width: '80%',
+  },
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  button: {
+    backgroundColor: 'blue',
+    padding: 15,
+    borderRadius: 5,
+  },
+  text: {
+    color: 'white',
+    fontSize: 16,
+  },
+  preview: {
+    width: '100%',
+    height: 300,
+    marginTop: 10,
+  },
+});
 
 export default function App() {
   const [fonteCarregada] = useFonts({
